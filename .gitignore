@@ -1,0 +1,14 @@
+# Don't track content of these folders
+.spyproject/
+Relevant Papers/
+
+# Miscellaneous log files and such
+*.aux
+*.bbl
+*.blg
+*.log
+*.gz
+*.zip
+*.xml
+*.bcf
+

@@ -1,0 +1,87 @@
+\documentclass[12pt]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{mathtools}
+\usepackage{color}
+\usepackage{relsize}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage[section]{placeins}
+\usepackage[notquote]{hanging}
+\usepackage{setspace}
+\usepackage{natbib}
+\doublespacing
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\begin{document}
+	\begin{center}
+	Kyle Colangelo\\
+	2020 Summer Research Proposal
+	\end{center}
+\section{Summary}
+I propose an extension to the Double Machine Learning (DML) estimator, originally developed in  \cite{chernozhukov2018double}, to the case of multiple outcomes of interest, where correlations between equations are taken into account. The model framework will be a nonparametric version of the seemingly unrelated regression (SUR) model, and the newly proposed estimator will be preliminarily called the General Double Machine Learning (GDML) estimator. Advantages of studying multiple outcomes simultaneously include potential drastic improvements in efficiency over separate models, and asymptotically valid joint hypothesis testing of multiple causal objects of interest. Necessary asymptotic and finite sample results will be derived to establish the properties of the new estimator, as well as to construct an estimator of the covariance matrix of the estimator. The validity and advantages of the GDML estimator will be evaluated with Monte Carlo simulations and an empirical application.
+\section{Introduction}
+Recent developments have shown that machine learning methods can be used effectively for a variety of causal inference problems. In particular, \cite{chernozhukov2018double} developed the Double/Debiased machine learning (DML) estimator, which is capable of estimating a variety of causal objects of interest with the proper construction of moment conditions. For example, the DML estimator allows for the estimation of the slope coefficient in the partial linear model, and also the average treatment effect (ATE) for the binary case (the ATE estimation has since been extended to the continuous case in \cite{su2019non} and \cite{colangelo2020double}).
+
+Consider an outcome of interest $Y$, treatment $T$ (allowed to be multi-dimensional), covariate set $X$, and error $\varepsilon$. We may be interested in a nonparametric outcome equation
+\begin{align}
+	Y = g(T,X) + \varepsilon\label{eq:1},
+\end{align}
+which also encompasses parametric equations as special cases (such as the partial linear model from \cite{robinson1988root} considered in \cite{chernozhukov2018double}). The DML estimator requires a first-stage estimation of the conditional mean function $\gamma(t,x) = \mathbb{E}(Y|T=t,X=x)$ and the propensity score $f_{T|X}(t|x)$, typically using machine learning methods.\footnote{Note that any method that satisfies the convergence assumptions are allowed, including nonparametric kernel estimators or even linear regression}
+
+In many applications we may wish to study the relationship between treatments and multiple different outcomes of interest. If we consider $m$ outcomes of interest, we can extend equation \ref{eq:1} for all $m$ outcomes:
+\begin{align*}
+& Y_1 = g_1(T,X) +\varepsilon_1,\\
+& Y_2 =  g_2(T,X) +\varepsilon_2,\\
+&\vdots\\
+&Y_m =  g_m(T,X) +\varepsilon_m,
+\end{align*}
+where each $g_j$ is allowed to be a different function which may be dependent on a different subset of covariates. The $m$ equations can be stacked together as
+\begin{align}
+\mathbf{Y} = \mathbf{g}(T,X) +\varepsilon\label{eq:2},
+\end{align}  
+where $\mathbf{Y} = (Y_1,...,Y_m)'$ and $\mathbf{g}$ is a vector valued function.  In the strictly linear case this would be equivalent to the Seemingly Unrelated Regression (SUR) model as in \cite{zellner}. I am unaware of any research on nonparametric SUR models as specified in equation \ref{eq:2} from a frequentist perspective (\cite{smith2000nonparametric} propose a Bayesian estimator but it relies on linearity with respect to a set of basis function). While the SUR model can be estimated equation by equation, it has been shown in prior literature such as \cite{zellner1963estimators} that estimating an SUR model jointly via Generalized Least Squares (GLS) can result in efficiency gains. Further efficiency gains have been demonstrated for SUR models in \cite{mehrabani2020improved} with the use of restricted estimation. Additionally, analyzing the outcomes jointly allows for testing joint hypotheses on parameters relating to different outcomes. This indicates that there may be some advantages to applying analogous concepts to the DML estimator. 
+
+In the case of equation \ref{eq:2}, an implementation of the DML estimator would necessitate the estimation of nuisance parameters $\gamma_j$ and $f_{T|X}$ independently for $j=1,...,m$, which would then be used to estimate the moment condition(s) for each equation independently. However this ignores any correlation between equations, which it would be reasonable to expect (for example we would expect covariates most relevent in one model to also be very relevant in another model). There is a growing literature on multi-output (or multi-label) machine learning algorithms that take advantage of such correlations (see \cite{borchani2015survey} for a survey of such algorithms). There is also a fast growing literature on transfer learning and prior knowledge learning, in which information learned about one equation is directly inputted into another (for example the Discriminability-Based Transfer (DBT) algorithm in \cite{pratt1993discriminability} or the prior lasso described in \cite{jiang2016variable}). Usage of such algorithms would allow for the joint estimation of each $\gamma_j$ which can improve performance of the nuisance estimator. 
+
+To take advantage of the potential correlation between equations I propose the General Double Machine Learning (GDML) estimator which consists of two components: The joint estimation of the first-stage nuisance parameters ($\gamma_j$ and $f_{T|X}$) for all $m$ equations  and an averaging estimator similar to \cite{mehrabani2020improved}. As a special case the GDML estimator will encompass equation-by-equation DML. 
+ 
+\newpage
+\section{Goals For the Summer}
+Over the summer I hope to accomplish the following goals:
+\begin{enumerate}
+	\item Establish necessary theoretical results for the proposed estimator.
+	\item Code and run Monte Carlo simulations to assess the performance of the proposed estimator.
+	\item Develop a novel empirical application of the new estimator.
+	\item Complete a draft of the paper and proceed with the dissertation prospectus exam. 
+	\item Submit the paper to a number of conferences
+\end{enumerate}
+\section{Budget}
+I hereby request the following budget for my project:
+\begin{itemize}
+	\item $\approx$\$4,000 for Amazon Web Services for the intense computation required for the Monte Carlo simulations.
+\end{itemize}
+Any funding I do receive will necessarily go towards these computational costs.
+
+
+
+
+\newpage
+\bibliography{references}		% expects file 
+\bibliographystyle{aer}	% (uses file "plain.bst")
+
+
+
+\end{document}
+
+
+
+
+
+
+
+
