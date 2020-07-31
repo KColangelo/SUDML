@@ -19,19 +19,283 @@
 \usepackage{booktabs}
 \usepackage{natbib}
 \usepackage{setspace}
-\doublespacing
+\usepackage{amsmath}
+\usepackage{nccmath}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\argmin}{arg\,min}
+
+\usepackage{amsthm}
+
+\newtheorem{assumption}{Assumption}
+\newtheorem{theorem}{Theorem}
+\let\origtheassumption\theassumption
+\makeatother
 
 \begin{document}
 	\begin{center}
-		General Double Machine Learning Outline\\
+		Improved Double Machine Learning Estimation for Multivariate Outcomes \\
+		Outline\\
 		Kyle Colangelo
 	\end{center}
 \begin{outline}[enumerate]
 	\1 Introduction
-	\1 Literature Review
-	\1 Theory
-	\1 Simulations
-	\1 Empirical Application
+		\2 Goals of the paper:
+			\3 Develop a framework and theory for analyzing multiple outcomes simultaneously with double machine learning
+			\3 Develop a new estimator to improve efficiency when considering multiple outcomes simultaneously, including the case of missing data.
+			\3 Double Machine Learning is a very general framework so we consider a select few special cases. The binary average treatment effect and the partial linear model.		
+		\2 Motivation
+			\3 Analyzing multiple outcomes jointly can improve efficiency
+			\3 Multi-output algorithms and transfer learning are already in wide use for predictive problems, there are likely advantages to using them for causal inference.
+			\3 Testing of joint hypotheses for multiple outcomes
+			\3 Andrew Ng said in 2016 that transfer learning will be the next driver of commercial success in machine learning. It may be useful to develop a framework for causal inference that uses similar methods. 
+			\3 In research where specific outcomes have substantial missing data, the power of any analysis might be so low as to be very uninformative. There are various areas where algorithms have been adapted to this kind of setting to compensate for missing data in predictive problems. This is particularly the case for nonparametric problems where power is reduced.
+		\2 Examples of advantages of multi-output ML for predictive problems
+			\3 Examples of when/why they are used
+		\2 Examples of applications where the new approach make sense and can have potential advantages
+		\2 Contributions
+			\3 Introduce a way to estimate a fully nonparametric SUR model with DML
+			\3 Construct a novel new estimator which improves efficiency over equation-by-equation DML
+			\3 Improve statistical power when some outcomes have substantial missing data
+			\3 The development of restricted DML as a by-product of this paper may be of independent interest
+			\3 The development of a stein-type estimator for GMM may be of independent interest
+		\2 Literature Review
+			\3 Double machine learning. Why use it?
+			\3 SUR advantages/disadvantages
+			\3 Multi-output machine learning. Advantages to doing it
+			\3 Transfer Learning
+			\3 Stein-type averaging
+		\2 How is the paper organized
+			\3 Framework and theory generalizing DML to multiple outcomes
+			\3 Theory introducing the averaging estimator to improve efficiency for given nuisance estimators.
+			\3 Theory for the case of missing data
+			\3 Simulations
+			\3 Empirical Application
+			\3 Summary/Conclusion
+	\1 Theory Part I: Multiple Outcomes
+		\2 Goals of this section:
+			\3 Establish notation and baseline estimators for each case considered
+			\3 Precisely state assumptions and theorems for joint normality of causal parameters from all equations
+			\3 Establish an estimator for the causal parameter covariance matrix for each case considered
+		\2 Problem Framework
+			\3 Model
+			\begin{align*}
+				& Y_1 = g_1(T,X) +\varepsilon_1,\\
+				& Y_2 =  g_2(T,X) +\varepsilon_2,\\
+				&\vdots\\
+				&Y_m =  g_m(T,X) +\varepsilon_m,
+			\end{align*}
+			\begin{align*}
+				Y = \pmb{g}(T,X) + \varepsilon
+			\end{align*}
+			\3 Special Cases:
+				\4 Fully linear model (SUR)
+				\4 Partial linear model (SUR-PLM)
+		\2 Main Assumptions
+			\begin{assumption}[Random Sample]\label{as:random} $(Y_i,T_i,X_i)$ are i.i.d.\end{assumption}
+			\begin{assumption}[Exogeneity]\label{as:exo} $E(\varepsilon|X) = 0$\end{assumption}
+			\begin{assumption}[Error Variance]\label{as:var} 
+				$E(\varepsilon_i\varepsilon_j') = \sigma_{ij} I_m$ ($E(\varepsilon\varepsilon') = \Sigma \otimes I_m$) \\
+				 where $\Sigma =
+				\begin{bmatrix}
+					\sigma_{11} & \sigma_{12} & \cdots & \sigma_{1m}\\
+					\sigma_{21} & \sigma_{22} & \cdots & \sigma_{2m}\\
+								&			  &	\vdots & \\
+					\sigma_{m1} & \sigma_{m2} & \cdots & \sigma_{mm}
+				\end{bmatrix}$
+			\end{assumption}
+			\begin{assumption}[Efficiency]
+				$Y_{1i},Y_{0i}\bot T_i|X_i$
+			\end{assumption}
+				
+		\2 ATE (binary)
+			\3 Model
+				\4 Additionally assume $T = m(X) + V$
+			\3 Causal Objects of Interest:
+				\4 ATE: $E[\pmb{g}(1,X)-\pmb{g}(0,X)]$
+			\3 Estimator
+				\4 Split the sample into $L$ subgroups. Defined $I_l$ as the set of observations corresponding to the $l^{th}$ subgroup and $I_{l}^C$ as the complement set of observations (all observations not in $l$) 
+				\4 Estimate $\mathbf{g}$ \textit{jointly} using multi-output ML for each subgroup $l$ (along with $m$), by fitting the models on $I_{l}^C$ and evaluating them on $I_{l}$
+				\4 ATE:
+					\begin{align*}
+					\hat{\pmb{\beta}} = \frac{1}{N}\sum_{i=1}^N \pmb{\phi}(W_i,\hat{\eta}),
+					\end{align*}
+					which denotes a vector of ATE's, one for each of the $m$ equations considered. Where $W_i = (Y_i,T_i,X_i)$ and $\hat{\eta} = (\pmb{\hat{g}},\hat{m})$, and \\$\pmb{\phi}(W_i;\hat{\eta}_i) = (\phi_1(W_i;\hat{\eta}_i),...,\phi_m(W_i;\hat{\eta}_i))' = \hat{\pmb{g}}(1,X_i) - \hat{\pmb{g}}(0,X_i) + \frac{T_i(Y_i-\hat{\pmb{g}}(1,X_i))}{\hat{m}(X_i)} - \frac{(1-T_i)(Y_i-\hat{\pmb{g}}(0,X_i))}{1-\hat{m}(X_i)}$.
+				\4 Further define $\pmb{\psi}(W;\pmb{\beta},\eta) = \pmb{\phi}(W;\eta) - \pmb{\beta}$
+				\4 Alternatively we could minimize the Neyman-orthogonal moment conditions with a GMM type estimator. The moment conditions would be $E[\pmb{\psi}(W_i;\pmb{\beta},\eta_i)] = 0$
+			\3 Asymptotic theory
+				\4 Given the same assumptions to \cite{chernozhukov2018double} consistency and asymptotic normality are established for each individual ATE. The only difference so far is that we are suggesting estimating the nuisance functions jointly. If the new nuisance estimators still satisfies the necessary convergence properties, the results should still hold.
+				\4 With assumptions \ref{as:random}-\ref{as:var} we have the following result for joint normality:
+					\begin{theorem}[Joint Normality-ATE)]\label{norm:ate}
+						Under assumptions \ref{as:random}-\ref{as:var}, and the assumptions in \cite{chernozhukov2018double} we have: 
+						\begin{align*}
+							\sqrt{N}(\hat{\pmb{\beta}} - \pmb{\beta}) \xrightarrow[]{d} N(0,V)
+						\end{align*}
+						Where
+						\begin{align*}
+							V = 
+							\begin{bmatrix}
+								E[\psi_{1i}^2] 	& E[\psi_{1i}\psi_{2i}] & \cdots & E[\psi_{1i}\psi_{mi}] \\
+								E[\psi_{2i}\psi_{1i}] & E[\psi_{2i}^2] 	  & \cdots & E[\psi_{2i}\psi_{mi}] \\
+												&			  	  &	\vdots & \\
+								E[\psi_{mi}\psi_{1i}] & E[\psi_{mi}\psi_{2i}] & \cdots & E[\psi_{mi}^2]
+							\end{bmatrix}
+						\end{align*}
+					\end{theorem}
+					\begin{proof}
+						From previous results in \cite{chernozhukov2018double} we have the following asymptotic linear representation:
+						\begin{align*}
+							\sqrt{N}(\hat{\beta}-\beta) &= \sqrt{N}(\frac{1}{N}\sum_{i=1}^{N}\psi_i) + o_p(1)\\
+							&= \frac{1}{\sqrt{N}}\sum_{i=1}^{N}\psi_i + o_p(1)
+						\end{align*}
+						Given assumption \ref{as:random} we can apply the Lindberg Multivariate Central Limit Theorem
+						\begin{align*}
+							\frac{1}{\sqrt{N}}\sum_{i=1}^{N}\psi_i + o_p(1)\xrightarrow[]{d} N(0,V)\\
+						\end{align*}
+						where 
+						\begin{align*}
+							V = 
+							\begin{bmatrix}
+							Var(\phi_{1i}) 	& Cov(\phi_{1i},\psi_{2i}) & \cdots & Cov(\phi_{1i},\phi_{mi}) \\
+							Cov(\phi_{2i},\phi_{1i}) & Var(\phi_{2i})	  & \cdots & Cov(\phi_{2i},\phi_{mi}) \\
+							&			  	  &	\vdots & \\
+							Cov(\phi_{mi},\phi_{1i}) & Cov(\phi_{mi},\phi_{2i}) & \cdots & Var(\phi_{1i})
+							\end{bmatrix}
+						\end{align*}
+						From previous results we know the functional form of $Var(\psi_{1i})$. We will now derive the functional form of $Cov(\psi_{1}\psi_{2})$. By the law of total variance we have:
+						\begin{align*}
+							V = Var(\pmb{\phi}_i) &= Var(E(\pmb{\phi}_i|T,X)) + E(Var(\pmb{\phi}_i|T,X))\\
+							&= Var\Big(E\big(\mathbf{g}(1,X)-\mathbf{g}(0,X) + T\frac{Y-g(1,X)}{m(X)} \\
+							&- (1-T)\frac{Y-g(0,X)}{1-m(X)}|T,X\big)\Big) 
+							+ E\Big(Var\big(\mathbf{g}(1,X)-\mathbf{g}(0,X) \\
+							&+ T\frac{Y-g(1,X)}{m(X)} - (1-T)\frac{Y-g(0,X)}{1-m(X)}|T,X\big)\Big)\\
+							&= Var\Big(g(1,X)-g(0,X)\Big) + E\Big(Var\Big(\frac{TY}{m(X)} - \frac{(1-T)Y}{1-m(X)}|T,X\Big)\Big)\\
+							&= E\Big((g(1,X)-g(0,X)-\beta)^2\Big) \\
+							&+ E\Big(\Big(\frac{T}{m(X)}-\frac{(1-T)}{(1-m(X))}\Big)^2Var(Y|T,X)\Big)
+						\end{align*}
+						Taking the 2nd term we note that $T=1_{\{T=1\}}$ and $(1-T)= 1_{\{T=0\}}$, furthermore distributing the square we get:
+						\begin{align*}
+							&= E\Big(\Big(\frac{1_{\{T=1\}}}{m(X)^2}+\frac{1_{\{T=0\}}}{(1-m(X))^2}\Big)Var(Y|T,X)\Big)
+						\end{align*}
+						When applying the square, the indicator functions are unchanged and the product term is always equal to zero. We can apply the law of iterated expectations, and then apply the definition of the inner expectation, multiplying 
+						\begin{align*}
+							&= E\Big(E\Big(\Big(\frac{1_{\{T=1\}}}{m(X)^2}+\frac{1_{\{T=0\}}}{(1-m(X))^2}\Big)Var(Y|T,X)|X\Big)\Big)\\
+							&=E\Big( m(X)\Big(\frac{1}{m(X)^2}\Big)\Sigma_1(X) + (1-m(X))\Big(\frac{1}{(1-m(X))}\Big)\Sigma_0(X)|X\Big)
+						\end{align*}
+						Therefore finally we have:
+						\begin{align*}
+							V = E\Big(\Big(\frac{\pmb{\Sigma}_1(X)}{m(X)}+\frac{\pmb{\Sigma}_0(X)}{(1-m(X))}\Big) + (\mathbf{g}(1,X)-\mathbf{g}(0,X)-\beta)^2\Big)
+						\end{align*}
+					\end{proof}
+			\3 Covariance matrix estimator
+				\4 Sample Analog 
+					\begin{align*}
+						\hat{V} = 
+						\begin{bmatrix}
+							\frac{1}{N}\sum_{i=1}^N \hat{\psi}_{1i}^2 	& \frac{1}{N}\sum_{i=1}^N \hat{\psi}_{1i}\hat{\psi}_{2i} & \cdots & \frac{1}{N}\sum_{i=1}^N \hat{\psi}_{1i}\hat{\psi}_{mi} \\
+							\frac{1}{N}\sum_{i=1}^N \hat{\psi}_{1i}\hat{\psi}_{2i} & \frac{1}{N}\sum_{i=1}^N \hat{\psi}_{2i}^2 	& \cdots  & \frac{1}{N}\sum_{i=1}^N \hat{\psi}_{2i}\hat{\psi}_{mi} \\
+							&			  	  &	\vdots & \\
+							\frac{1}{N}\sum_{i=1}^N \hat{\psi}_{1i}\hat{\psi}_{mi} & \frac{1}{N}\sum_{i=1}^N \hat{\psi}_{2i}\hat{\psi}_{mi} & \cdots & \frac{1}{N}\sum_{i=1}^N \hat{\psi}_{mi}^2
+						\end{bmatrix}
+					\end{align*}
+		\2 PLM
+			\3 Adjusted Model:
+				\begin{align*}
+				& Y_1 = \beta_1 T + g_1(X) +\varepsilon_1,\\
+				& Y_2 =  \beta_2 T + g_2(X) +\varepsilon_2,\\
+				&\vdots\\
+				&Y_m =  \beta_m T + g_m(X) +\varepsilon_m,
+				\end{align*}
+			\3 Causal Object of Interest: $\pmb{\beta} = (\beta_1,\cdots,\beta_m)'$
+			\3 \textbf{*Need to work out PLM, will wait until ATE is completely fleshed out}
+			\3 In the PLM case i believe a GLS type approach would be applicable given how the DML estimation is performed in this case. The treatment of PLM may end up being entirely different than for the ATE.
+		\2 General Case
+			\3 Model: Any arbitrary model from which sufficient neyman-orthogonal moment conditions can be constructed.
+			\3 Estimator
+				\4 Define $\bar{\psi}_N = \frac{1}{N} \sum_{i=1}^N \psi(W;\beta,\eta)$
+				\4 $\hat{\beta} = \underset{\beta}{\arg\min} \;\;\bar{\psi}_N'\bar{\psi}_N$
+		\2 Special Case: Strictly linear SUR model
+	\1 Theory Part II: Restricted Estimator
+		\2 Goals of this section:
+			\3 Propose a restricted DML estimator for each case and derive their properties.
+			\3 Precisely define the constraint		
+		\2 ATE (Binary)
+			\3 GMM version of estimator
+				\4 It is helpful to think of the DML estimators as GMM type estimators for the purpose of placing restrictions on the estimators
+				\4 $\hat{\beta} = \underset{\beta}{\arg\min} \;\;\bar{\psi}_N'W\bar{\psi}_N$
+				\4 In the normal DML case the weighting matrix is irrelevant. 
+				\4 Note that $\bar{\psi}_N = \bar{\phi}_N - \pmb{\beta}$
+				\4 Define $\Omega = E\big[\psi_i\psi_i'\big]$
+				\4 Constrained estimation problem:
+				\begin{align*}
+				\tilde{\beta} = &\underset{\beta}{\arg\min} \;\;(\bar{\phi}_N - \pmb{\beta})'\Omega^{-1}(\bar{\phi}_N - \pmb{\beta})\\
+				& \text{s.t.} \quad  R'\pmb{\beta} = 0
+				\end{align*}
+			\3 The constraint:
+				\4 
+					\begin{align*}
+						\beta_1 = \beta_2 = \cdots = \beta_m = \bar{\beta}
+					\end{align*}
+					Where $\bar{\beta}$ is a weighted average of the $\beta$'s, following \cite{mehrabani2020improved}
+					\begin{align*}
+						\bar{\beta} = \big(J'\Omega^{-1}J\big)^{-1} J'\Omega^{-1}\beta
+					\end{align*}
+					In general we may consider other constraints which can result in differing properties of the final estimator. 
+				\4 We can precisely define this constraint in matrix notation as:
+					\begin{align*}
+						\begin{bmatrix}
+						\beta_1-\bar{\beta}\\
+						\beta_2 - \bar{\beta}\\
+						\vdots \\
+						\beta_{m} - \bar{\beta}
+						\end{bmatrix} = R'\pmb{\beta} = 0
+					\end{align*}
+					Where $R = I - J\big(J'\Omega^{-1}J\big)^{-1} J'\Omega^{-1} $ is idempotent.
+			\3 Performing the optimization:
+			\begin{align*}
+				&\underset{\beta}{\min} \;\;(\bar{\phi}_N - \pmb{\beta})'\Omega^{-1}(\bar{\phi}_N - \pmb{\beta})\\
+				& \text{s.t.} \quad  R'\pmb{\beta} = 0
+			\end{align*}
+			\begin{align*}
+				&\mathcal{L}(\beta,\lambda) = \frac{1}{2}\big(\bar{\phi}_N'\Omega^{-1}\bar{\phi}_N - 2\bar{\phi}_N'\Omega^{-1}\beta + \beta'\Omega^{-1}\beta\big) + \lambda'(R'\beta)\\
+				&\frac{\partial{L}}{\partial\beta} = -\Omega^{-1}\bar{\phi}_N + \Omega^{-1}\tilde{\beta} + R\tilde{\lambda} = 0\\
+				&\frac{\partial{L}}{\partial\lambda} = R'\tilde{\beta} = 0
+			\end{align*}
+			Multiplying the derivative with respect to $\beta$ by $R'\Omega$ we get
+			\begin{align*}
+				&R'\hat{\beta} + R'\tilde{\beta} + R'\Omega R\tilde{\lambda} = 0\\
+				&\tilde{\lambda} = (R'\Omega R)^{-1} R'\hat{\beta}
+			\end{align*}
+			Plugging in and solving for $\tilde{\beta}$ we get:
+			\begin{align*}
+				\tilde{\beta} &= \hat{\beta} - \Omega R (R'\Omega R)^{-1} R' \hat{\beta}\\
+				&= (I-\Omega R (R'\Omega R)^{-1} R')\hat{\beta}\\
+				&= (I-R)\hat{\beta}
+			\end{align*}
+			Which is infeasible, so we can construct a feasible version of this estimator:
+			\begin{align*}
+				\tilde{\beta}_F = (I-\hat{R}) \hat{\beta}
+			\end{align*}
+			In general we could set any linear constraint $R'\beta=c$ and derive a very similar estimator.
+			\3 Properties:
+		\2 PLM case:
+			\3 \textbf{*needs work} 
+	\1 Theory Part III: Averaging Estimator
+		\2 General Concept: Balance bias and variance by constructing a weighted average of the constrained and unconstrained estimators.
+		\2 Averaging Estimator
+			\begin{align*}
+				\hat{\beta}_A = \bigg(1-\frac{\tau}{D}\bigg)\hat{\pmb{\beta}} - \frac{\tau}{D} \tilde{\pmb{\beta}}
+			\end{align*}
+			Where $D = (\hat{\pmb{\beta}} - \tilde{\pmb{\beta}})'W(\hat{\pmb{\beta}} - \tilde{\pmb{\beta}})$,
+			which measures the distance between the constrained and unconstrained estimators.
+		\2 Bias
+		\2 MSEM
+	\1 Simulations \textbf{*Code has been written for the estimators. I am determining precisely what I want to do and then I can run them*}
+		\2 Graphs for RMSE vs. correlation
+		\2 Coverage Rate for Joint tests
+		\2 Missing data
+	\1 Empirical Application \textbf{*Still need to determine where i want to apply the new approach*}
+		\2 Application without missing data
+		\2 Application with missing data
 	\1 Summary/Conclusion
 	
 \end{outline}
